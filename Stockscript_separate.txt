@@ -1,0 +1,106 @@
+Sub stockscript()
+
+Dim ticker As String ' where to read ticker to
+Dim yeardiff As Double ' used to store difference of beginning and end of year price
+Dim percentchange As Double   ' used to store percent change of a stage
+Dim volume As Double    ' sum of <vol>
+Dim opening As Double    ' first day open price
+Dim closing As Double    ' last day close price
+Dim ticker_counter As Integer ' counts how many tickers to output a row number in new data
+
+Dim increase As Double ' for greatest % increase
+Dim decrease As Double ' for greatest % decrease
+Dim greatest_volume As Double ' for greatest volume
+
+
+Dim ws As Worksheet
+
+' Loops across each worksheet
+For Each ws In ThisWorkbook.Worksheets
+
+    ' find last row of sheet
+    Dim LastRow As Double
+    LastRow = ws.Cells(Rows.Count, 1).End(xlUp).Row
+    
+    'Initialize variables before loop
+    opening = ws.Cells(2, 3).Value
+    ticker_counter = 1
+    volume = 0
+    increase = 0
+    decrease = 0
+    greatest_volume = 0
+    
+    ' loop until LastRow
+    For i = 2 To LastRow
+        
+        'sum up the total stock volume
+        volume = volume + ws.Cells(i, 7).Value
+        
+            ' If ticker is not the same as the next row
+            If ws.Cells(i + 1, 1).Value <> ws.Cells(i, 1).Value Then
+                
+                ticker_counter = ticker_counter + 1
+                ' fetch closing price
+                closing = ws.Cells(i, 6).Value
+                ' compute values to output for the ticker
+                yeardiff = closing - opening
+                percentchange = yeardiff / opening ' (0.5 * (opening + closing)) this should change to the yearly stock average
+                'output to cells
+                ws.Cells(ticker_counter, 9).Value = ws.Cells(i, 1).Value
+                ws.Cells(ticker_counter, 10).Value = yeardiff
+                ws.Cells(ticker_counter, 11).Value = FormatPercent(percentchange)
+                ws.Cells(ticker_counter, 12).Value = volume
+                
+                'finding greatest yearly changes
+                
+                If percentchange > increase And percentchange > 0 Then
+                    increase = percentchange
+                    ws.Range("O2").Value = ws.Cells(i, 1).Value
+                    ws.Range("P2").Value = FormatPercent(percentchange)
+                End If
+                If percentchange < decrease And percentchange < 0 Then
+                    decrease = percentchange
+                    ws.Range("O3").Value = ws.Cells(i, 1).Value
+                    ws.Range("P3").Value = FormatPercent(percentchange)
+                End If
+                If volume > greatest_volume Then
+                    greatest_volume = volume
+                    ws.Range("O4").Value = ws.Cells(i, 1).Value
+                    ws.Range("P4").Value = greatest_volume
+                End If
+                
+                'reset variables
+                volume = 0
+                opening = ws.Cells(i + 1, 3).Value
+            End If
+    
+    Next i
+    
+    
+    For i = 2 To ticker_counter
+        ' conditional format cell background for Percent Change
+        If ws.Cells(i, 10).Value > 0 Then
+            ' Green if positive
+            ws.Cells(i, 10).Interior.Color = RGB(0, 255, 0)
+        Else
+            ' Red if negative or zero
+            ws.Cells(i, 10).Interior.Color = RGB(255, 0, 0)
+        End If
+        
+    Next i
+    
+'initialize titles of new rows of data
+ws.Range("I1").Value = "Ticker"
+ws.Range("J1").Value = "Yearly Change"
+ws.Range("K1").Value = "Percent Change"
+ws.Range("L1").Value = "Total Stock Volume"
+ws.Range("O1").Value = "Ticker"
+ws.Range("P1").Value = "Value"
+ws.Range("N2").Value = "Greatest % Incease"
+ws.Range("N3").Value = "Greatest % Decrease"
+ws.Range("N4").Value = "Greatest Total Volume"
+ws.Columns("I:P").AutoFit
+        
+Next ws
+
+End Sub
